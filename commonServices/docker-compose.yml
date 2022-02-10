@@ -1,0 +1,142 @@
+version: "3.5"
+
+services:
+
+# Rabbit MQ
+  rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    container_name: 'rabbitmq'
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbit
+      - RABBITMQ_DEFAULT_PASS=rabbit
+    ports:
+      - 0.0.0.0:5672:5672
+      - 0.0.0.0:15672:15672
+    volumes:
+      - /vol-rabbitmq:/var/lib/rabbitmq/
+    networks:
+        - common  
+
+# Redis      
+  redis:
+    image: "redis:latest"
+    hostname: redis
+    container_name: redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "0.0.0.0:5700:6379"
+    volumes:
+      # - ./vol-redis/:/data
+      - /vol-redis/:/data/db
+    networks:
+      - common 
+
+# MONGO DB
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_MONGO_USERNAME-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_MONGO_PASSWORD-admin}
+    ports:
+      - "0.0.0.0:27017:27017"
+    volumes:
+      # - ./vol-mongo/:/data/db
+      - /vol-mongo/:/data/db
+    networks:
+      - common  
+
+# MONGOEXPRESS MONGO DB MANAGER / BROWSER
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: 'true'
+      ME_CONFIG_MONGODB_AUTH_DATABASE: 'admin'
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${DB_MONGO_USERNAME-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${DB_MONGO_PASSWORD-admin}
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: "27017"
+    ports:
+      - "0.0.0.0:8081:8081"
+    depends_on:
+      - mongo
+    networks:
+      - common  
+
+# MYSQL DB
+  mysql-5:
+    image: mysql:5.7
+    container_name: mysql-5
+    restart: unless-stopped
+    environment:
+      MYSQL_USER: ${DB_MYSQL_USERNAME-admin}
+      MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD-admin}
+      MYSQL_ROOT_PASSWORD: ${DB_MYSQL_PASSWORD-root}
+      SERVICE_TAGS: db
+      SERVICE_NAME: mysql-5
+    ports:
+      - "0.0.0.0:6033:3306"
+    volumes:
+      # - ./vol-mysql:/var/lib/mysql
+      - /vol-mysql:/var/lib/mysql
+    networks:
+      - common
+
+# PHPMYADMIN MYSQL DB BROWSER / MANAGER
+  phpmyadmin:
+    depends_on:
+      - mysql-5
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - '0.0.0.0:8080:80'
+    environment:
+      PMA_HOST: mysql-5
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      MYSQL_ROOT_PASSWORD: ${DB_MYSQL_PASSWORD-root}
+    networks:
+      - common
+
+## NGINX
+#   nginx:
+#     image: nginx:alpine
+#     container_name: nginx
+#     restart: unless-stopped
+#     ports:
+#       - "5000:80"
+#     volumes:
+#       - ./:/var/www/app
+#       - ./vol-nginx:/etc/nginx/conf.d
+#     networks:
+#       - common
+
+# NETWORK
+networks:
+  common:
+    driver: bridge
+
+# Volumes
+volumes:
+  vol-mysql:
+    external: true
+    # driver: local
+  vol-mongo:
+    external: true
+    # driver: local
+  vol-redis:    
+    external: true
+    # driver: local
+  vol-rabbitmq:    
+    external: true
+    # driver: local
+
+        
+
+

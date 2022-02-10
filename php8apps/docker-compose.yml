@@ -1,0 +1,26 @@
+version: "3.5"
+
+services:
+
+# Main App
+  php8apps:
+    build:
+      args:
+        user: dev
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    container_name: php8apps
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - app-vault
+
+# NETWORK
+networks:
+  app-vault:
+    external:
+      name: commonservices_common
+
